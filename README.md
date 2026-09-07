@@ -3,10 +3,10 @@
 A self-contained devshell + **pinned firmware** for flashing the **Supermicro X11SDV-4C-TP8F** board (the SYS-5019D-4C-FN8TP) BIOS and BMC **in-band** from Linux.
 
 ```bash
-nix develop github:jgus/supermicro-x11sdv-tp8f-fw-flake
+nix develop github:jgus-org/supermicro-x11sdv-tp8f-fw-flake
 ```
 
-Standalone (like `github:jgus/connectx3-flake`), with its own `nixpkgs` pin. The firmware is pinned by `fetchurl` straight from Supermicro at build time — no blob committed here, nothing to download by hand.
+Standalone (like `github:jgus-org/connectx3-flake`), with its own `nixpkgs` pin. The firmware is pinned by `fetchurl` straight from Supermicro at build time — no blob committed here, nothing to download by hand.
 
 ## What it provides
 
@@ -32,7 +32,7 @@ Source bundle `X11SDV-TP8F_2.2_AS01.74.13_SUM2.14.0.zip` (SHA256 `f3f7a1f950c890
 In-band `sum` talks to the BMC over `/dev/ipmi0` (the IPMI KCS interface). On a freshly-booted machine — including the NixOS live installer — the modules aren't loaded yet, and **the flake can't ship them**: kernel modules are tied to the running kernel, not to this flake's pinned nixpkgs. They come from the booted kernel instead (the standard NixOS installer kernel includes `ipmi_si`/`ipmi_devintf`):
 
 ```bash
-nix develop github:jgus/supermicro-x11sdv-tp8f-fw-flake   # enable flakes on the installer if needed
+nix develop github:jgus-org/supermicro-x11sdv-tp8f-fw-flake   # enable flakes on the installer if needed
 smc-load-ipmi                                  # = sudo modprobe ipmi_si ipmi_devintf, then checks /dev/ipmi0
 sudo dmidecode -t baseboard                    # sanity-check you're on an X11SDV-4C-TP8F
 ```

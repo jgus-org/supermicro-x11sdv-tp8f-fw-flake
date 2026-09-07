@@ -1,7 +1,7 @@
 {
   description = "Devshell + bundled firmware for flashing Supermicro X11SDV-4C-TP8F (SYS-5019D-4C-FN8TP) BIOS/BMC in-band";
 
-  # Standalone flashing toolbox (entered via `nix develop github:jgus/supermicro-x11sdv-tp8f-fw-flake`), self-contained
+  # Standalone flashing toolbox (entered via `nix develop github:jgus-org/supermicro-x11sdv-tp8f-fw-flake`), self-contained
   # with its own nixpkgs pin; the proprietary firmware is fetched straight from Supermicro. Makes no assumptions about
   # the host it flashes — intended to run from a bare machine or a NixOS live installer.
   inputs = {
