@@ -7,16 +7,35 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      treefmt-nix,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         # Instantiated upstream state (the vendored URLs, revisions and fixed-output hashes) lives in ./pin.nix; no updater rewrites it, a bump is a hand edit there.
         pin = import ./pin.nix;
 
         # SUM and the firmware blob are proprietary Supermicro binaries.
-        pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+
+        treefmtEval = treefmt-nix.lib.evalModule pkgs {
+          projectRootFile = "flake.nix";
+          programs.nixfmt.enable = true;
+        };
 
         # Supermicro Update Manager — proprietary glibc ELF; in-band flasher for BOTH BIOS (UpdateBios) and BMC (UpdateBmc).
         # Direct, fetchable vendor URL (the click-through portal only gates the firmware bundle, not the SUM tarball).
@@ -28,7 +47,10 @@
             hash = pin.sum.hash;
           };
           nativeBuildInputs = [ pkgs.autoPatchelfHook ];
-          buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
+          buildInputs = [
+            pkgs.stdenv.cc.cc.lib
+            pkgs.zlib
+          ];
           dontConfigure = true;
           dontBuild = true;
           # Keep SUM's vendor layout intact (sum resolves ExternalData/ and the sum_bios driver source relative to its
@@ -92,7 +114,13 @@
         #                                 features — HTML5 iKVM virtual media, system lockdown — that OOB-LIC does not.
         license-keygen = pkgs.writeShellApplication {
           name = "smc-license-keygen";
-          runtimeInputs = [ pkgs.ipmitool pkgs.python3 pkgs.gnused pkgs.coreutils product-key-tool ];
+          runtimeInputs = [
+            pkgs.ipmitool
+            pkgs.python3
+            pkgs.gnused
+            pkgs.coreutils
+            product-key-tool
+          ];
           text = ''
             sku="SFT-OOB-LIC"
             mac=""
@@ -148,7 +176,10 @@
         # are already active.
         license-activate = pkgs.writeShellApplication {
           name = "smc-license-activate";
-          runtimeInputs = [ sum license-keygen ];
+          runtimeInputs = [
+            sum
+            license-keygen
+          ];
           text = ''
             activate() {
               echo "Activating $1: $2" >&2
@@ -203,7 +234,13 @@
         bmc = "${firmware}/bmc/BMC_X11AST2500-4101MS_20230802_01.74.13_STDsp.bin";
       in
       {
-        packages = { inherit sum firmware product-key-tool; default = sum; };
+        packages = {
+          inherit sum firmware product-key-tool;
+          default = sum;
+        };
+
+        formatter = treefmtEval.config.build.wrapper;
+        checks.formatting = treefmtEval.config.build.check self;
 
         devShells.default = pkgs.mkShellNoCC {
           buildInputs = [
@@ -244,5 +281,6 @@
             echo "  smc-license-keygen [--sku SFT-DCMS-SINGLE] [MAC]   # just print a key (OOB by default)"
           '';
         };
-      });
+      }
+    );
 }
