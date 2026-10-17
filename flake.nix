@@ -12,6 +12,9 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
+        # Instantiated upstream state (the vendored URLs, revisions and fixed-output hashes) lives in ./pin.nix; no updater rewrites it, a bump is a hand edit there.
+        pin = import ./pin.nix;
+
         # SUM and the firmware blob are proprietary Supermicro binaries.
         pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
@@ -19,10 +22,10 @@
         # Direct, fetchable vendor URL (the click-through portal only gates the firmware bundle, not the SUM tarball).
         sum = pkgs.stdenv.mkDerivation {
           pname = "supermicro-sum";
-          version = "2.15.0";
+          version = pin.sum.version;
           src = pkgs.fetchurl {
-            url = "https://www.supermicro.com/Bios/sw_download/1026/sum_2.15.0_Linux_x86_64_20251104.tar.gz";
-            hash = "sha256-bRlGDrpeac/SN5eAfDgh44c5w9JiIKbEDcaiQ4k0g+I=";
+            url = pin.sum.url;
+            hash = pin.sum.hash;
           };
           nativeBuildInputs = [ pkgs.autoPatchelfHook ];
           buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];
@@ -67,14 +70,14 @@
         # RSA-signed and NOT forgeable this way.
         product-key-tool = pkgs.buildGoModule {
           pname = "supermicro-product-key";
-          version = "1.2.0";
+          version = pin.productKey.version;
           src = pkgs.fetchFromGitHub {
             owner = "zsrv";
             repo = "supermicro-product-key";
-            rev = "v1.2.0";
-            hash = "sha256-7+LJNaNxWoYfw8iG+mfbA6Cu0YYXDmNHV+6iMD6ny/Y=";
+            rev = pin.productKey.rev;
+            hash = pin.productKey.hash;
           };
-          vendorHash = "sha256-Rf+PDGhGqi3FllOBZp8FLG9g6WnK35aEs49Ne9W3N5M=";
+          vendorHash = pin.productKey.vendorHash;
           meta = {
             description = "Generate/decode Supermicro BMC product keys offline";
             license = pkgs.lib.licenses.mit;
@@ -172,10 +175,10 @@
         # The bundle nests per-component zips; extract them so the flashable images sit at predictable paths.
         firmware = pkgs.stdenv.mkDerivation {
           pname = "x11sdv-tp8f-firmware";
-          version = "2.2_AS01.74.13";
+          version = pin.firmware.version;
           src = pkgs.fetchurl {
-            url = "https://www.supermicro.com/Bios/softfiles/23140/X11SDV-TP8F_2.2_AS01.74.13_SUM2.14.0.zip";
-            hash = "sha256-8/eh+VDIkEyXgxP7pi7lw8mSs/4x+LSMjahBzqYOnqg=";
+            url = pin.firmware.url;
+            hash = pin.firmware.hash;
           };
           nativeBuildInputs = [ pkgs.unzip ];
           dontConfigure = true;
