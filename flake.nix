@@ -6,7 +6,10 @@
   # the host it flashes — intended to run from a bare machine or a NixOS live installer.
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-lib = {
+      url = "github:jgus-org/flake-lib/v1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -17,10 +20,10 @@
     {
       self,
       nixpkgs,
-      flake-utils,
+      flake-lib,
       treefmt-nix,
     }:
-    flake-utils.lib.eachDefaultSystem (
+    flake-lib.lib.eachDefaultLinuxSystem (
       system:
       let
         # Instantiated upstream state (the vendored URLs, revisions and fixed-output hashes) lives in ./pin.nix; no updater rewrites it, a bump is a hand edit there.
@@ -258,7 +261,7 @@
             export SMC_BIOS="${bios}"
             export SMC_BMC="${bmc}"
             echo "--- Supermicro X11SDV-4C-TP8F (SYS-5019D-4C-FN8TP) firmware shell ---"
-            echo "sum 2.15.0 | ipmitool | pciutils | dmidecode   BIOS 2.2 / BMC 01.74.13 in \$SMC_FW"
+            echo "sum ${pin.sum.version} | ipmitool | pciutils | dmidecode   firmware ${pin.firmware.version} in \$SMC_FW"
             echo "Confirm the board first:  sudo dmidecode -t baseboard"
             echo
             echo "In-band sum talks to the BMC over /dev/ipmi0 (IPMI KCS). On a fresh boot / live installer it isn't loaded yet:"
