@@ -29,11 +29,11 @@ The SUM and firmware sources are fetched by their pinned versioned URLs, so foll
 
 ## Firmware versions
 
-| Component | Version | Image |
-|---|---|---|
-| BIOS | 2.2 (2024-09-03) | `BIOS_X11SDV-0986_20240903_2.2_STDsp.bin` |
-| BMC/IPMI | 01.74.13 (2023-08-02) | `BMC_X11AST2500-4101MS_20230802_01.74.13_STDsp.bin` |
-| SUM | 2.15.0 (2025-11-04) | the vendor's Linux x86_64 tarball |
+| Component | Version               | Image                                               |
+| --------- | --------------------- | --------------------------------------------------- |
+| BIOS      | 2.2 (2024-09-03)      | `BIOS_X11SDV-0986_20240903_2.2_STDsp.bin`           |
+| BMC/IPMI  | 01.74.13 (2023-08-02) | `BMC_X11AST2500-4101MS_20230802_01.74.13_STDsp.bin` |
+| SUM       | 2.15.0 (2025-11-04)   | the vendor's Linux x86_64 tarball                   |
 
 TP8F firmware is shared across the 4C/8C/12C/16C variants of the board. The NICs (X552 10G, i350 1GbE, X557 PHY) carry their firmware inside the BIOS update — there is no separate NIC flash step. Newer releases appear on the board's [download-center page](https://www.supermicro.com/en/support/resources/downloadcenter/firmware/MBD-X11SDV-4C-TP8F/BIOS).
 
@@ -94,6 +94,6 @@ With no arguments `smc-license-activate` reads the BMC's own MAC and activates e
 
 So enabling HTML5 virtual media takes the DCMS key, not the OOB key; the no-argument `smc-license-activate` already applies both.
 
-> **Generation matters.** Gen 9 has only the OOB key (no non-JSON key). Gen 10/11 — this board — support the offline-mintable non-JSON DCMS key. **X12+** uses RSA-signed "JSON" keys that cannot be minted this way; there you need a real licence from Supermicro. The DCMS *suite software* (SSM/SPM central management) is a separate entitlement in every generation.
+> **Generation matters.** Gen 9 has only the OOB key (no non-JSON key). Gen 10/11 — this board — support the offline-mintable non-JSON DCMS key. **X12+** uses RSA-signed "JSON" keys that cannot be minted this way; there you need a real licence from Supermicro. The DCMS _suite software_ (SSM/SPM central management) is a separate entitlement in every generation.
 
 **Fallback for virtual media without a key:** the Java-based iKVM console attaches an ISO with no DCMS licence (only the HTML5 console enforces it), and an ISO on a CIFS/Samba share mounts without one. Useful if a self-minted key is rejected by your firmware.
