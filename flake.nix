@@ -5,23 +5,15 @@
   # with its own nixpkgs pin; the proprietary firmware is fetched straight from Supermicro. Makes no assumptions about
   # the host it flashes — intended to run from a bare machine or a NixOS live installer.
   inputs = {
+    flake-lib.url = "github:jgus-org/flake-lib/v1";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    flake-lib = {
-      url = "github:jgus-org/flake-lib/v1";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
     {
       self,
-      nixpkgs,
       flake-lib,
-      treefmt-nix,
+      nixpkgs,
     }:
     flake-lib.lib.eachDefaultLinuxSystem (
       system:
@@ -35,27 +27,19 @@
           config.allowUnfree = true;
         };
 
-        treefmtEval = treefmt-nix.lib.evalModule pkgs {
-          projectRootFile = "flake.nix";
-          programs.nixfmt.enable = true;
+        orgFormatting = flake-lib.lib.mkFormatting {
+          inherit self system;
         };
 
         # Supermicro Update Manager — proprietary glibc ELF; in-band flasher for BOTH BIOS (UpdateBios) and BMC (UpdateBmc).
         # Direct, fetchable vendor URL (the click-through portal only gates the firmware bundle, not the SUM tarball).
         sum = pkgs.stdenv.mkDerivation {
-          pname = "supermicro-sum";
-          version = pin.sum.version;
-          src = pkgs.fetchurl {
-            url = pin.sum.url;
-            hash = pin.sum.hash;
-          };
-          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
           buildInputs = [
             pkgs.stdenv.cc.cc.lib
             pkgs.zlib
           ];
-          dontConfigure = true;
           dontBuild = true;
+          dontConfigure = true;
           # Keep SUM's vendor layout intact (sum resolves ExternalData/ and the sum_bios driver source relative to its
           # own location) and expose it on PATH via a symlink — /proc/self/exe still resolves into the libexec dir.
           installPhase = ''
@@ -70,9 +54,16 @@
           meta = {
             description = "Supermicro Update Manager (in-band BIOS/BMC flasher)";
             license = pkgs.lib.licenses.unfree;
-            platforms = [ "x86_64-linux" ];
             mainProgram = "sum";
+            platforms = [ "x86_64-linux" ];
           };
+          nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+          pname = "supermicro-sum";
+          src = pkgs.fetchurl {
+            hash = pin.sum.hash;
+            url = pin.sum.url;
+          };
+          version = pin.sum.version;
         };
 
         # Loads the IPMI KCS modules from the *running* kernel (the flake can't ship kernel modules — they're tied to the
@@ -94,20 +85,20 @@
         # SFT-DCMS-SINGLE key, which the bare OOB HMAC can't express, is mintable offline. X12+ "JSON" keys are
         # RSA-signed and NOT forgeable this way.
         product-key-tool = pkgs.buildGoModule {
-          pname = "supermicro-product-key";
-          version = pin.productKey.version;
-          src = pkgs.fetchFromGitHub {
-            owner = "zsrv";
-            repo = "supermicro-product-key";
-            rev = pin.productKey.rev;
-            hash = pin.productKey.hash;
-          };
-          vendorHash = pin.productKey.vendorHash;
           meta = {
             description = "Generate/decode Supermicro BMC product keys offline";
             license = pkgs.lib.licenses.mit;
             mainProgram = "supermicro-product-key";
           };
+          pname = "supermicro-product-key";
+          src = pkgs.fetchFromGitHub {
+            hash = pin.productKey.hash;
+            owner = "zsrv";
+            repo = "supermicro-product-key";
+            rev = pin.productKey.rev;
+          };
+          vendorHash = pin.productKey.vendorHash;
+          version = pin.productKey.version;
         };
 
         # BMC license key generator.
@@ -208,16 +199,8 @@
         # Supermicro's softfiles host (SoftwareItemID 23140 — bypasses the download-center disclaimer clickwrap).
         # The bundle nests per-component zips; extract them so the flashable images sit at predictable paths.
         firmware = pkgs.stdenv.mkDerivation {
-          pname = "x11sdv-tp8f-firmware";
-          version = pin.firmware.version;
-          src = pkgs.fetchurl {
-            url = pin.firmware.url;
-            hash = pin.firmware.hash;
-          };
-          nativeBuildInputs = [ pkgs.unzip ];
-          dontConfigure = true;
           dontBuild = true;
-          unpackPhase = "unzip -q $src -d outer";
+          dontConfigure = true;
           installPhase = ''
             runHook preInstall
             mkdir -p $out/bios $out/bmc
@@ -231,20 +214,21 @@
             license = pkgs.lib.licenses.unfree;
             platforms = [ "x86_64-linux" ];
           };
+          nativeBuildInputs = [ pkgs.unzip ];
+          pname = "x11sdv-tp8f-firmware";
+          src = pkgs.fetchurl {
+            hash = pin.firmware.hash;
+            url = pin.firmware.url;
+          };
+          unpackPhase = "unzip -q $src -d outer";
+          version = pin.firmware.version;
         };
 
         bios = "${firmware}/bios/BIOS_X11SDV-0986_20240903_2.2_STDsp.bin";
         bmc = "${firmware}/bmc/BMC_X11AST2500-4101MS_20230802_01.74.13_STDsp.bin";
       in
       {
-        packages = {
-          inherit sum firmware product-key-tool;
-          default = sum;
-        };
-
-        formatter = treefmtEval.config.build.wrapper;
-        checks.formatting = treefmtEval.config.build.check self;
-
+        checks.formatting = orgFormatting.check;
         devShells.default = pkgs.mkShellNoCC {
           buildInputs = [
             sum
@@ -283,6 +267,11 @@
             echo "  smc-license-activate               # derive + activate BOTH OOB and DCMS keys (full unlock)"
             echo "  smc-license-keygen [--sku SFT-DCMS-SINGLE] [MAC]   # just print a key (OOB by default)"
           '';
+        };
+        formatter = orgFormatting.formatter;
+        packages = {
+          inherit firmware product-key-tool sum;
+          default = sum;
         };
       }
     );
