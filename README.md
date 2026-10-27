@@ -21,11 +21,11 @@ nix develop github:jgus-org/supermicro-x11sdv-tp8f-fw-flake
 
 Or take an output from a flake input — `inputs.<name>.packages.${system}.firmware`, whatever you name the input.
 
-The SUM and firmware sources are fetched by their pinned versioned URLs, so following this flake's `nixpkgs` into your own changes the host tools you get (`ipmitool`, `pciutils`, `dmidecode`) but not the versions of those sources.
+The SUM and firmware sources are fetched by their pinned versioned URLs, so following this flake's `nixpkgs` into your own changes the host tools you get (`ipmitool`, `pciutils`, `dmidecode`) but not the versions of those sources. The flake sets `config.allowUnfree` in its own package set, so consuming its outputs needs no unfree acceptance of your own.
 
 ## Supported hosts
 
-`<system>` covers `x86_64-linux` and `aarch64-linux`. `sum` and `firmware` are **x86_64-linux only**: SUM is a proprietary x86_64 Linux binary and the images are for one x86_64 board. There is nothing here to build for macOS. `product-key-tool` is a portable Go binary and runs anywhere nixpkgs builds Go packages.
+`<system>` covers `x86_64-linux` and `aarch64-linux`. `sum` and `firmware` are **x86_64-linux only**: SUM is a prebuilt x86_64 Linux binary from the vendor and the images are for one x86_64 board. There is nothing here to build for macOS. `product-key-tool` is a portable Go binary and runs anywhere nixpkgs builds Go packages.
 
 ## Firmware versions
 
@@ -69,13 +69,9 @@ Without any Linux tooling:
 - **BMC** — the BMC web UI's **Maintenance → Firmware Update** (needs network to the BMC).
 - **BIOS** — boot the **UEFI shell** from USB and run `flash.nsh` (`afuefi.smc`) from `$SMC_FW/bios`; `$SMC_FW/bmc/2.09/AuUpdate.efi` updates the BMC the same way.
 
-## Licensing
+## Supermicro licence keys
 
-SUM and the firmware are Supermicro's proprietary property, fetched from Supermicro when you build, and not redistributed by this flake. The flake enables unfree packages in its own package set, so consuming its outputs needs no licence acceptance in your own configuration.
-
-In-band SUM (`UpdateBios`, `UpdateBmc`) and the web-UI BMC update are free. A per-node **SFT-DCMS-SINGLE** or **SFT-OOB-LIC** licence is needed only for OOB SUM over the BMC network, BIOS updates through the web UI, and HTML5 iKVM virtual media.
-
-### BMC licence keys
+In-band SUM (`UpdateBios`, `UpdateBmc`) and the web-UI BMC update need no key. A per-node **SFT-DCMS-SINGLE** or **SFT-OOB-LIC** licence is needed only for OOB SUM over the BMC network, BIOS updates through the web UI, and HTML5 iKVM virtual media.
 
 Three helpers, all in-band over `/dev/ipmi0` (pass `-i <bmc> -u <user> -p <pass>` to `sum` to target a BMC over the network instead):
 
@@ -97,3 +93,5 @@ So enabling HTML5 virtual media takes the DCMS key, not the OOB key; the no-argu
 > **Generation matters.** Gen 9 has only the OOB key (no non-JSON key). Gen 10/11 — this board — support the offline-mintable non-JSON DCMS key. **X12+** uses RSA-signed "JSON" keys that cannot be minted this way; there you need a real licence from Supermicro. The DCMS _suite software_ (SSM/SPM central management) is a separate entitlement in every generation.
 
 **Fallback for virtual media without a key:** the Java-based iKVM console attaches an ISO with no DCMS licence (only the HTML5 console enforces it), and an ISO on a CIFS/Samba share mounts without one. Useful if a self-minted key is rejected by your firmware.
+
+See [LICENSE.md](LICENSE.md) for licensing and copyright, and [NOTICE.md](NOTICE.md) for the terms of upstream and distributed artifacts.
