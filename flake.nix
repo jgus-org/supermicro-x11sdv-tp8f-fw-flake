@@ -80,14 +80,14 @@
           fi
         '';
 
-        # Offline Supermicro product-key encoder (zsrv/supermicro-product-key, MIT). Generates the "non-JSON" key
+        # Offline Supermicro product-key encoder (zsrv/supermicro-product-key). Generates the "non-JSON" key
         # format (gen 10/11/select-12) whose validator the BMC recomputes locally from the key's own fields — so a
         # SFT-DCMS-SINGLE key, which the bare OOB HMAC can't express, is mintable offline. X12+ "JSON" keys are
         # RSA-signed and NOT forgeable this way.
         product-key-tool = pkgs.buildGoModule {
           meta = {
             description = "Generate/decode Supermicro BMC product keys offline";
-            license = pkgs.lib.licenses.mit;
+            license = pkgs.lib.licenses.unfree;
             mainProgram = "supermicro-product-key";
           };
           pname = "supermicro-product-key";
