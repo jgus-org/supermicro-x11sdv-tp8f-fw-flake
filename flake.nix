@@ -5,8 +5,11 @@
   # with its own nixpkgs pin; the proprietary firmware is fetched straight from Supermicro. Makes no assumptions about
   # the host it flashes — intended to run from a bare machine or a NixOS live installer.
   inputs = {
-    flake-lib.url = "github:jgus-org/flake-lib/v1";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    flake-lib = {
+      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:jgus-org/flake-lib/v1";
+    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs =
